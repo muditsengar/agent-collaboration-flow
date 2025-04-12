@@ -12,8 +12,9 @@ export function ThemeToggle() {
       variant="outline" 
       size="icon"
       onClick={() => setTheme("light")}
+      className="bg-white"
     >
-      <Sun className="h-[1.2rem] w-[1.2rem]" />
+      <Sun className="h-[1.2rem] w-[1.2rem] text-yellow-500" />
       <span className="sr-only">Light theme</span>
     </Button>
   );

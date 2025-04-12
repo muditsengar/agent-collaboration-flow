@@ -10,7 +10,6 @@ import { AgentTracesPanel } from '@/components/agent-traces-panel';
 import { InternalCommsPanel } from '@/components/internal-comms-panel';
 import { AgentSelection } from '@/components/agent-selection';
 import { Separator } from "@/components/ui/separator";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { BrainCircuit } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -53,40 +52,42 @@ const Index = () => {
                 </Card>
                 
                 <Card className="h-[30vh] overflow-hidden">
+                  <AgentSelection />
+                </Card>
+                
+                <Card className="h-[30vh] overflow-hidden">
                   <AgentTracesPanel />
                 </Card>
                 
                 <Card className="h-[30vh] overflow-hidden">
                   <InternalCommsPanel />
                 </Card>
-                
-                <Card className="h-[30vh] overflow-hidden">
-                  <AgentSelection />
-                </Card>
               </div>
             ) : (
-              <div className="grid grid-cols-12 gap-4 h-[calc(100vh-160px)]">
-                <div className="col-span-6 flex flex-col">
-                  <Card className="h-full flex flex-col">
+              <div className="grid grid-cols-2 gap-4 h-[calc(100vh-160px)]">
+                {/* Left 50% - Multi-Agent Request and Direct Agent Access */}
+                <div className="flex flex-col space-y-4">
+                  <Card className="flex-1 flex flex-col overflow-hidden">
                     <RequestForm />
                     <Separator />
                     <div className="flex-1 overflow-hidden">
                       <ConversationPanel />
                     </div>
                   </Card>
+                  
+                  <Card className="h-[30vh] overflow-hidden">
+                    <AgentSelection />
+                  </Card>
                 </div>
                 
-                <div className="col-span-6 grid grid-rows-3 gap-4">
-                  <Card className="row-span-1 overflow-hidden">
+                {/* Right 50% - Agent Traces and Internal Communications */}
+                <div className="flex flex-col space-y-4">
+                  <Card className="flex-1 overflow-hidden">
                     <AgentTracesPanel />
                   </Card>
                   
-                  <Card className="row-span-1 overflow-hidden">
+                  <Card className="flex-1 overflow-hidden">
                     <InternalCommsPanel />
-                  </Card>
-                  
-                  <Card className="row-span-1 overflow-hidden">
-                    <AgentSelection />
                   </Card>
                 </div>
               </div>
