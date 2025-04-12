@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { SendIcon, RefreshCwIcon } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,8 +10,6 @@ import { toast } from 'sonner';
 export function RequestForm() {
   const { 
     connectionState, 
-    framework, 
-    setFramework, 
     sendUserMessage, 
     isSubmitting,
     resetConversation 
@@ -30,6 +27,11 @@ export function RequestForm() {
     
     if (!connectionState.isConnected) {
       toast.error('Not connected to server');
+      return;
+    }
+
+    if (!connectionState.autogenConnected) {
+      toast.error('Autogen is not available. Please check server configuration.');
       return;
     }
     
@@ -64,26 +66,6 @@ export function RequestForm() {
               Reset
             </Button>
           </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Framework</Label>
-              <RadioGroup 
-                value={framework} 
-                onValueChange={(value) => setFramework(value as 'autogen' | 'native')}
-                className="flex space-x-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="native" id="native" />
-                  <Label htmlFor="native" className="cursor-pointer">Native</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="autogen" id="autogen" />
-                  <Label htmlFor="autogen" className="cursor-pointer">AutoGen</Label>
-                </div>
-              </RadioGroup>
-            </div>
-          </div>
         </div>
       </div>
       
@@ -105,7 +87,7 @@ export function RequestForm() {
         <Button 
           type="submit" 
           className="w-full" 
-          disabled={isSubmitting || !connectionState.isConnected}
+          disabled={isSubmitting || !connectionState.isConnected || !connectionState.autogenConnected}
         >
           {isSubmitting ? (
             <>
