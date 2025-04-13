@@ -51,7 +51,7 @@ const Index = () => {
                   </div>
                 </Card>
                 
-                <Card className="h-[40vh] overflow-hidden">
+                <Card className="overflow-hidden flex-1">
                   <AgentSelection />
                 </Card>
                 
@@ -67,7 +67,7 @@ const Index = () => {
               <div className="grid grid-cols-2 gap-4 h-[calc(100vh-160px)]">
                 {/* Left 50% - Multi-Agent Request and Direct Agent Access */}
                 <div className="flex flex-col space-y-4">
-                  <Card className="h-[40vh] flex flex-col overflow-hidden">
+                  <Card className="h-[30vh] flex flex-col overflow-hidden">
                     <RequestForm />
                     <Separator />
                     <div className="flex-1 overflow-hidden">
@@ -75,7 +75,7 @@ const Index = () => {
                     </div>
                   </Card>
                   
-                  <Card className="h-[calc(100vh-160px-40vh-1rem)] overflow-hidden">
+                  <Card className="flex-1 overflow-hidden">
                     <AgentSelection />
                   </Card>
                 </div>

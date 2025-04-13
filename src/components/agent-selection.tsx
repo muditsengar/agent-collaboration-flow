@@ -54,12 +54,12 @@ export function AgentSelection() {
   };
   
   return (
-    <div className="p-4 h-full flex flex-col overflow-hidden">
-      <div className="flex justify-between items-center mb-4">
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="flex justify-between items-center mb-4 px-4 pt-4">
         <h2 className="text-lg font-medium">Direct Agent Access</h2>
       </div>
       
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto px-4 pb-4">
         {view === 'cards' ? (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
             {agents.map((agent) => (
