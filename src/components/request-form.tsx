@@ -51,9 +51,9 @@ export function RequestForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b">
-        <div className="flex flex-col space-y-3">
+    <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-full">
+      <div className="px-4 py-2 border-b">
+        <div className="flex flex-col space-y-2">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-medium">Multi-Agent Request</h2>
             <Button 
@@ -69,21 +69,19 @@ export function RequestForm() {
         </div>
       </div>
       
-      <div className="flex-1 p-4">
-        <div className="flex flex-col h-full">
-          <Label htmlFor="prompt" className="mb-2">Your request</Label>
-          <Textarea
-            id="prompt"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Enter your request for the AI agents..."
-            className="flex-1 resize-none min-h-[200px]"
-            disabled={isSubmitting || !connectionState.isConnected}
-          />
-        </div>
+      <div className="flex-1 p-4 overflow-hidden flex flex-col">
+        <Label htmlFor="prompt" className="mb-2">Your request</Label>
+        <Textarea
+          id="prompt"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Enter your request for the AI agents..."
+          className="flex-1 resize-none min-h-0"
+          disabled={isSubmitting || !connectionState.isConnected}
+        />
       </div>
       
-      <div className="px-4 py-3 border-t">
+      <div className="px-4 py-2 border-t">
         <Button 
           type="submit" 
           className="w-full" 

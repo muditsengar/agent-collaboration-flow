@@ -41,8 +41,8 @@ const Index = () => {
           <main className="flex-1 container mx-auto p-4 md:p-6 flex flex-col">
             {isMobile ? (
               <div className="space-y-4">
-                <Card className="overflow-hidden">
-                  <div className="flex flex-col h-[60vh]">
+                <Card className="overflow-hidden h-[45vh]">
+                  <div className="flex flex-col h-full">
                     <RequestForm />
                     <Separator />
                     <div className="flex-1 overflow-hidden">
@@ -51,7 +51,7 @@ const Index = () => {
                   </div>
                 </Card>
                 
-                <Card className="h-[30vh] overflow-hidden">
+                <Card className="h-[40vh] overflow-hidden">
                   <AgentSelection />
                 </Card>
                 
@@ -67,7 +67,7 @@ const Index = () => {
               <div className="grid grid-cols-2 gap-4 h-[calc(100vh-160px)]">
                 {/* Left 50% - Multi-Agent Request and Direct Agent Access */}
                 <div className="flex flex-col space-y-4">
-                  <Card className="flex-1 flex flex-col overflow-hidden">
+                  <Card className="h-[40vh] flex flex-col overflow-hidden">
                     <RequestForm />
                     <Separator />
                     <div className="flex-1 overflow-hidden">
@@ -75,18 +75,18 @@ const Index = () => {
                     </div>
                   </Card>
                   
-                  <Card className="h-[30vh] overflow-hidden">
+                  <Card className="h-[calc(100vh-160px-40vh-1rem)] overflow-hidden">
                     <AgentSelection />
                   </Card>
                 </div>
                 
                 {/* Right 50% - Agent Traces and Internal Communications */}
                 <div className="flex flex-col space-y-4">
-                  <Card className="flex-1 overflow-hidden">
+                  <Card className="h-[40vh] overflow-hidden">
                     <AgentTracesPanel />
                   </Card>
                   
-                  <Card className="flex-1 overflow-hidden">
+                  <Card className="h-[calc(100vh-160px-40vh-1rem)] overflow-hidden">
                     <InternalCommsPanel />
                   </Card>
                 </div>
