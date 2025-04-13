@@ -61,9 +61,17 @@ export function DirectAgentChat({ agentId, agentName, clientId, onClose }: Direc
         } else if (data.type === 'error') {
           toast.error(data.message);
           setIsLoading(false);
+          
+          // Add error message to chat
+          setMessages(prev => [...prev, {
+            content: `Error: ${data.message}`,
+            isUser: false,
+            timestamp: Date.now(),
+          }]);
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
+        setIsLoading(false);
       }
     };
     

@@ -67,8 +67,8 @@ export interface DirectAgentMessage {
   content: string;
 }
 
-// Framework Type
-export type FrameworkType = 'autogen' | 'native';
+// Framework Type - Kept for compatibility but only AutoGen is used
+export type FrameworkType = 'autogen';
 
 // Process Request Payload
 export interface ProcessRequestPayload {

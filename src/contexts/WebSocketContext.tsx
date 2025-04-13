@@ -8,7 +8,6 @@ import {
   AgentTrace,
   InternalComm,
   WebSocketMessage,
-  FrameworkType,
   ProcessRequestPayload,
   ProcessResponse,
   StatusResponse
