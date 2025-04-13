@@ -1,73 +1,91 @@
-# Welcome to your Lovable project
+# Real-Time Multi-Agent Collaboration with Traces
 
-## Project info
+## Overview
+This project implements a multi-agent system that can rapidly collaborate to solve complex tasks. The system uses a combination of specialized agents that work together to process user requests, with real-time traceability of the agents' decision-making process.
 
-**URL**: https://lovable.dev/projects/717372b9-95e1-4c99-8fcf-95757094b333
+## Project Architecture
 
-## How can I edit this code?
+### Multi-Agent System
+- **Specialized Agents**: The system consists of multiple specialized agents, each handling different aspects of problem-solving
+- **Real-Time Communication**: Agents communicate through WebSocket connections, enabling seamless message passing and shared context
+- **Traceability**: All agent interactions and decision-making processes are logged and displayed in real-time
 
-There are several ways of editing your application.
+### Key Features
+- Real-time agent collaboration
+- Transparent decision-making process
+- Web-based user interface
+- Scalable agent architecture
+- Rapid AI-assisted development
 
-**Use Lovable**
+## Technologies Used
+- **Frontend**:
+  - Vite
+  - TypeScript
+  - React
+  - shadcn-ui
+  - Tailwind CSS
+- **Backend**:
+  - Python
+  - WebSocket for real-time communication
+  - Custom agent framework
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/717372b9-95e1-4c99-8fcf-95757094b333) and start prompting.
+## Setup & Installation
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
+- Node.js & npm
+- Python 3.8+
+- Git
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
+### Installation Steps
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Clone the repository
+git clone https://github.com/muditsengar/agent-collaboration-flow
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Navigate to the project directory
+cd agent-collaboration-flow
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install frontend dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Install backend dependencies
+cd backend
+pip install -r requirements.txt
+cd ..
+
+# Start the development servers
+npm run dev  # Frontend
+cd backend && python main.py  # Backend
 ```
 
-**Edit a file directly in GitHub**
+## Usage
+1. Access the web interface at `http://localhost:8080`
+2. Enter your complex task request
+3. Watch the agents collaborate in real-time
+4. View the trace output showing agent interactions
+5. Receive the consolidated solution
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## System Architecture
+The system consists of:
+1. **Web Interface**: User-friendly frontend for task input and result visualization
+2. **Agent Manager**: Coordinates agent communication and task distribution
+3. **Specialized Agents**: Individual agents with specific capabilities
+4. **Trace System**: Real-time logging and visualization of agent interactions
 
-**Use GitHub Codespaces**
+## Scalability & Extensibility
+- New agents can be added without system overhaul
+- Modular architecture allows for easy integration of new capabilities
+- WebSocket-based communication enables distributed deployment
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Deployment
+The project can be deployed using:
+1. Traditional server deployment
+2. Containerized deployment (Docker)
+3. Cloud platform deployment
 
-## What technologies are used for this project?
+For detailed deployment instructions, refer to the deployment documentation.
 
-This project is built with:
+## Contributing
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/717372b9-95e1-4c99-8fcf-95757094b333) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes it is!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## License
+This project is licensed under the MIT License - see the LICENSE file for details.

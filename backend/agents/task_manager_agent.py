@@ -1,8 +1,9 @@
 from typing import Dict, Any
 from .base_agent import BaseAgent
+from services.websocket_manager import WebSocketManager
 
 class TaskManagerAgent(BaseAgent):
-    def __init__(self):
+    def __init__(self, ws_manager: WebSocketManager = None):
         system_message = """You are a Task Manager Agent responsible for:
         1. Breaking down complex user queries into manageable subtasks
         2. Delegating tasks to appropriate specialized agents
@@ -12,12 +13,12 @@ class TaskManagerAgent(BaseAgent):
         
         Always maintain a clear structure in your responses and track progress of delegated tasks."""
         
-        super().__init__("TaskManager", system_message)
+        super().__init__("TaskManager", system_message, ws_manager)
     
-    async def process_message(self, message: str, context: Dict[str, Any] = None) -> str:
+    async def process_message(self, message: str, context: Dict[str, Any] = None, client_id: str = None) -> str:
         """Process user message and coordinate with other agents."""
         # Add task management specific logic here
-        response = await super().process_message(message, context)
+        response = await super().process_message(message, context, client_id)
         return self._format_response(response)
     
     def _format_response(self, response: str) -> str:

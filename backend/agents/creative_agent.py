@@ -1,8 +1,9 @@
 from typing import Dict, Any
 from .base_agent import BaseAgent
+from services.websocket_manager import WebSocketManager
 
 class CreativeAgent(BaseAgent):
-    def __init__(self):
+    def __init__(self, ws_manager: WebSocketManager = None):
         system_message = """You are a Creative Agent specialized in:
         1. Generating innovative ideas and solutions
         2. Brainstorming creative approaches
@@ -12,11 +13,11 @@ class CreativeAgent(BaseAgent):
         
         Always bring creativity and originality to your responses while staying relevant to the task."""
         
-        super().__init__("Creative", system_message)
+        super().__init__("Creative", system_message, ws_manager)
     
-    async def process_message(self, message: str, context: Dict[str, Any] = None) -> str:
+    async def process_message(self, message: str, context: Dict[str, Any] = None, client_id: str = None) -> str:
         """Process creative requests and provide innovative solutions."""
-        response = await super().process_message(message, context)
+        response = await super().process_message(message, context, client_id)
         return self._format_response(response)
     
     def _format_response(self, response: str) -> str:

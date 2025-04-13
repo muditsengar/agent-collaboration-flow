@@ -28,9 +28,9 @@ app.add_middleware(
 # Initialize managers and agents
 ws_manager = WebSocketManager()
 session_manager = SessionManager()
-task_manager = TaskManagerAgent()
-research_agent = ResearchAgent()
-creative_agent = CreativeAgent()
+task_manager = TaskManagerAgent(ws_manager=ws_manager)
+research_agent = ResearchAgent(ws_manager=ws_manager)
+creative_agent = CreativeAgent(ws_manager=ws_manager)
 
 @app.post("/process")
 async def process_request(request: Dict[str, Any]):
@@ -52,15 +52,15 @@ async def process_request(request: Dict[str, Any]):
         session.add_conversation_message("user", prompt)
 
         # Process through task manager
-        task_response = await task_manager.process_message(prompt, session.context)
+        task_response = await task_manager.process_message(prompt, session.context, client_id)
         session.add_conversation_message("task_manager", task_response)
 
         # Process through research agent
-        research_response = await research_agent.process_message(prompt, session.context)
+        research_response = await research_agent.process_message(prompt, session.context, client_id)
         session.add_agent_trace("Research", research_response)
 
         # Process through creative agent
-        creative_response = await creative_agent.process_message(prompt, session.context)
+        creative_response = await creative_agent.process_message(prompt, session.context, client_id)
         session.add_agent_trace("Creative", creative_response)
 
         # Record internal communications
@@ -77,12 +77,8 @@ async def process_request(request: Dict[str, Any]):
             }
         ]
 
-        # Send responses through WebSocket if client is connected
+        # Send internal communications through WebSocket if client is connected
         if ws_manager.is_client_connected(client_id):
-            await ws_manager.send_agent_trace(client_id, "TaskManager", task_response)
-            await ws_manager.send_agent_trace(client_id, "Research", research_response)
-            await ws_manager.send_agent_trace(client_id, "Creative", creative_response)
-            
             for msg in internal_messages:
                 await ws_manager.send_internal_comm(
                     client_id,
@@ -98,6 +94,7 @@ async def process_request(request: Dict[str, Any]):
         }
 
     except Exception as e:
+        logger.error(f"Error processing request: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/status")

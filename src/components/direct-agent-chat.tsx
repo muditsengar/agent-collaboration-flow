@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ interface Message {
   content: string;
   isUser: boolean;
   timestamp: number;
+  type?: 'message' | 'trace' | 'error';
 }
 
 interface DirectAgentChatProps {
@@ -57,24 +57,29 @@ export function DirectAgentChat({ agentId, agentName, clientId, onClose }: Direc
             content: data.content,
             isUser: data.role === 'user',
             timestamp: data.timestamp || Date.now(),
+            type: 'message'
           }]);
           
-          // Set loading to false when we receive an assistant message
           if (data.role === 'assistant') {
             setIsLoading(false);
           }
         } else if (data.type === 'agent_trace') {
-          // We can also handle agent trace messages if needed
-          console.log(`Agent trace from ${data.agent}:`, data.content);
+          // Add trace message to chat with special styling
+          setMessages(prev => [...prev, {
+            content: `[${data.agent}] ${data.content}`,
+            isUser: false,
+            timestamp: data.timestamp || Date.now(),
+            type: 'trace'
+          }]);
         } else if (data.type === 'error') {
           toast.error(data.message);
           setIsLoading(false);
           
-          // Add error message to chat
           setMessages(prev => [...prev, {
             content: `Error: ${data.message}`,
             isUser: false,
             timestamp: Date.now(),
+            type: 'error'
           }]);
         }
       } catch (error) {
@@ -100,14 +105,11 @@ export function DirectAgentChat({ agentId, agentName, clientId, onClose }: Direc
   }, [messages]);
 
   const handleSend = () => {
-    if (!input.trim()) return;
-    if (!isConnected) {
-      toast.error('Not connected to agent');
-      return;
-    }
+    if (!input.trim() || !socket || !isConnected) return;
+    
+    setIsLoading(true);
     
     try {
-      // Fixed: Use user_message type instead of direct_agent_message
       const message = {
         type: 'user_message',
         content: input,
@@ -116,73 +118,72 @@ export function DirectAgentChat({ agentId, agentName, clientId, onClose }: Direc
       };
       
       console.log(`Sending message to ${agentName}:`, message);
-      socket?.send(JSON.stringify(message));
+      socket.send(JSON.stringify(message));
       
       // Add user message to UI
       setMessages(prev => [...prev, {
         content: input,
         isUser: true,
         timestamp: Date.now(),
+        type: 'message'
       }]);
       
       setInput('');
-      setIsLoading(true);
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
+      setIsLoading(false);
     }
   };
 
   return (
-    <Card className="flex flex-col h-full">
-      <div className="flex justify-between items-center border-b p-3">
-        <div className="flex items-center">
-          <Badge className={agentNameToColor(agentName)}>
-            {agentName}
-          </Badge>
-          <div className="ml-2 text-sm">
-            {isConnected ? (
-              <span className="text-green-500">Connected</span>
-            ) : (
-              <span className="text-red-500">Disconnected</span>
-            )}
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardContent className="p-4">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" style={{ backgroundColor: agentNameToColor(agentName) }}>
+              {agentName}
+            </Badge>
+            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
           </div>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <XIcon className="h-4 w-4" />
+          </Button>
         </div>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <XIcon className="h-4 w-4" />
-        </Button>
-      </div>
-      
-      <CardContent className="flex-1 overflow-y-auto p-3 space-y-3">
-        {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-center text-muted-foreground">
-            <p className="text-sm">No messages yet. Start chatting with {agentName}.</p>
-          </div>
-        ) : (
-          messages.map((message, index) => (
-            <div 
-              key={index} 
-              className={`p-2 rounded-lg max-w-[80%] whitespace-pre-wrap text-sm animate-slide-in ${
-                message.isUser 
-                  ? 'bg-primary text-primary-foreground ml-auto' 
-                  : 'bg-secondary text-secondary-foreground mr-auto'
-              }`}
+        
+        <div className="h-[400px] overflow-y-auto mb-4 space-y-4">
+          {messages.map((message, index) => (
+            <div
+              key={index}
+              className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
             >
-              {message.content}
+              <div
+                className={`max-w-[80%] rounded-lg p-3 ${
+                  message.type === 'trace'
+                    ? 'bg-blue-100 text-blue-800'
+                    : message.type === 'error'
+                    ? 'bg-red-100 text-red-800'
+                    : message.isUser
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted'
+                }`}
+              >
+                <p className="text-sm">{message.content}</p>
+                <span className="text-xs opacity-50">
+                  {new Date(message.timestamp).toLocaleTimeString()}
+                </span>
+              </div>
             </div>
-          ))
-        )}
-        <div ref={messagesEndRef} />
-      </CardContent>
-      
-      <div className="p-3 border-t">
-        <div className="flex space-x-2">
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+        
+        <div className="flex gap-2">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={`Message ${agentName}...`}
-            className="resize-none min-h-[60px]"
-            disabled={!isConnected || isLoading}
+            placeholder="Type your message..."
+            className="flex-1"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -190,15 +191,14 @@ export function DirectAgentChat({ agentId, agentName, clientId, onClose }: Direc
               }
             }}
           />
-          <Button 
-            onClick={handleSend} 
-            disabled={!isConnected || isLoading || !input.trim()}
-            className="self-end"
+          <Button
+            onClick={handleSend}
+            disabled={!input.trim() || !isConnected || isLoading}
           >
             <SendIcon className="h-4 w-4" />
           </Button>
         </div>
-      </div>
+      </CardContent>
     </Card>
   );
 }
