@@ -1,4 +1,3 @@
-
 // Connection State
 export interface ConnectionState {
   isConnected: boolean;
@@ -14,7 +13,7 @@ export interface Message {
 }
 
 export interface AgentTrace {
-  agent: 'TaskManager' | 'Research' | 'Creative';
+  agent: string;
   content: string;
   timestamp: number;
 }
@@ -55,10 +54,30 @@ export interface ErrorMessage {
 }
 
 export type WebSocketMessage = 
-  | AgentTraceMessage
-  | InternalCommMessage
-  | UserMessage
-  | ErrorMessage;
+  | {
+      type: 'user_message';
+      content: string;
+      timestamp: number;
+      role?: 'user' | 'assistant';
+    }
+  | {
+      type: 'agent_trace';
+      agent: string;
+      content: string;
+      timestamp: number;
+    }
+  | {
+      type: 'internal_comm';
+      from: string;
+      to: string;
+      content: string;
+      timestamp: number;
+    }
+  | {
+      type: 'error';
+      message: string;
+      timestamp: number;
+    };
 
 // Direct Agent Communication
 export interface DirectAgentMessage {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,9 +54,13 @@ export function DirectAgentChat({ agentId, agentName, clientId, onClose }: Direc
           setMessages(prev => [...prev, {
             content: data.content,
             isUser: false,
-            timestamp: Date.now(),
+            timestamp: data.timestamp || Date.now(),
           }]);
-          setIsLoading(false);
+          
+          // Only set loading to false if we receive an assistant message
+          if (data.role === 'assistant') {
+            setIsLoading(false);
+          }
         } else if (data.type === 'error') {
           toast.error(data.message);
           setIsLoading(false);

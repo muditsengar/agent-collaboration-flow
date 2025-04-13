@@ -32,7 +32,8 @@ class BaseAgent:
             return response
         except Exception as e:
             logger.error(f"Error in {self.name} processing message: {str(e)}")
-            return f"Error: {str(e)}"
+            # Propagate the error to be handled by the caller
+            raise e
     
     def get_agent(self) -> autogen.AssistantAgent:
         """Get the underlying Autogen agent instance."""

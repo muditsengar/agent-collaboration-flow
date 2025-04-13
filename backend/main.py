@@ -5,6 +5,7 @@ import asyncio
 from typing import Dict, Any, List
 import os
 import json
+import time
 
 from services.websocket_manager import WebSocketManager
 from services.session_state import SessionManager
@@ -127,98 +128,163 @@ async def get_status():
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
-    await ws_manager.connect(websocket, client_id)
-    session = session_manager.create_session(client_id)
-    
     try:
+        await ws_manager.connect(websocket, client_id)
+        session = session_manager.create_session(client_id)
+        
         while True:
-            data = await websocket.receive_json()
-            
-            if data["type"] == "user_message":
-                message = data["content"]
-                session.add_conversation_message("user", message)
-                await ws_manager.send_user_message(client_id, message)
+            try:
+                data = await websocket.receive_json()
                 
-                # Process message through task manager
-                task_response = await task_manager.process_message(message, session.context)
-                session.add_conversation_message("task_manager", task_response)
-                await ws_manager.send_agent_trace(client_id, "TaskManager", task_response)
-                await ws_manager.send_user_message(client_id, task_response)
-                
-                # Delegate to research agent if needed
-                research_response = await research_agent.process_message(message, session.context)
-                session.add_agent_trace("Research", research_response)
-                await ws_manager.send_agent_trace(client_id, "Research", research_response)
-                await ws_manager.send_user_message(client_id, research_response)
-                
-                # Delegate to creative agent if needed
-                creative_response = await creative_agent.process_message(message, session.context)
-                session.add_agent_trace("Creative", creative_response)
-                await ws_manager.send_agent_trace(client_id, "Creative", creative_response)
-                await ws_manager.send_user_message(client_id, creative_response)
-                
-                # Record internal communication
-                await ws_manager.send_internal_comm(
+                if data["type"] == "user_message":
+                    message = data["content"]
+                    session.add_conversation_message("user", message)
+                    await ws_manager.send_user_message(client_id, message)
+                    
+                    # Process message through task manager
+                    task_response = await task_manager.process_message(message, session.context)
+                    session.add_conversation_message("task_manager", task_response)
+                    await ws_manager.send_agent_trace(client_id, "TaskManager", task_response)
+                    await ws_manager.send_user_message(client_id, task_response, role="assistant")
+                    
+                    # Delegate to research agent if needed
+                    research_response = await research_agent.process_message(message, session.context)
+                    session.add_agent_trace("Research", research_response)
+                    await ws_manager.send_agent_trace(client_id, "Research", research_response)
+                    await ws_manager.send_user_message(client_id, research_response, role="assistant")
+                    
+                    # Delegate to creative agent if needed
+                    try:
+                        creative_response = await creative_agent.process_message(message, session.context)
+                        session.add_agent_trace("Creative", creative_response)
+                        await ws_manager.send_agent_trace(client_id, "Creative", creative_response)
+                        await ws_manager.send_user_message(client_id, creative_response, role="assistant")
+                    except Exception as e:
+                        error_message = str(e)
+                        if "rate_limit_exceeded" in error_message:
+                            error_message = "OpenAI rate limit exceeded. Please try again later."
+                        await ws_manager.send_user_message(client_id, error_message, role="assistant")
+                        await ws_manager.send_agent_trace(client_id, "Creative", f"Error: {error_message}")
+                    
+                    # Record internal communication
+                    await ws_manager.send_internal_comm(
+                        client_id,
+                        "TaskManager",
+                        "Research",
+                        f"Requesting research on: {message}"
+                    )
+                    await ws_manager.send_internal_comm(
+                        client_id,
+                        "TaskManager",
+                        "Creative",
+                        f"Requesting creative input on: {message}"
+                    )
+                    
+                    # Send final response
+                    final_response = f"Task Manager: {task_response}\n\nResearch: {research_response}\n\nCreative: {creative_response}"
+                    await ws_manager.send_user_message(client_id, final_response, role="assistant")
+                    
+            except json.JSONDecodeError:
+                await ws_manager.send_user_message(
                     client_id,
-                    "TaskManager",
-                    "Research",
-                    f"Requesting research on: {message}"
+                    "Error: Invalid message format",
+                    role="assistant"
                 )
-                await ws_manager.send_internal_comm(
+            except Exception as e:
+                logger.error(f"Error processing message: {str(e)}")
+                await ws_manager.send_user_message(
                     client_id,
-                    "TaskManager",
-                    "Creative",
-                    f"Requesting creative input on: {message}"
+                    f"Error processing message: {str(e)}",
+                    role="assistant"
                 )
-                
-                # Send final response
-                final_response = f"Task Manager: {task_response}\n\nResearch: {research_response}\n\nCreative: {creative_response}"
-                await ws_manager.send_user_message(client_id, final_response)
                 
     except WebSocketDisconnect:
+        await ws_manager.disconnect(client_id)
+        session_manager.remove_session(client_id)
+    except Exception as e:
+        logger.error(f"Error in WebSocket communication: {str(e)}")
         await ws_manager.disconnect(client_id)
         session_manager.remove_session(client_id)
 
 @app.websocket("/ws/{client_id}/agent/{agent_id}")
 async def direct_agent_websocket(websocket: WebSocket, client_id: str, agent_id: str):
     """Direct communication with a specific agent"""
-    await ws_manager.connect(websocket, client_id)
-    session = session_manager.create_session(client_id)
-    
     try:
-        # Get the specific agent
-        agent = None
-        if agent_id == "task_manager":
-            agent = task_manager
-        elif agent_id == "research":
-            agent = research_agent
-        elif agent_id == "creative":
-            agent = creative_agent
-        else:
-            await websocket.close(code=4000, reason="Invalid agent ID")
-            return
-
+        await ws_manager.connect(websocket, client_id, agent_id)
+        session = session_manager.create_session(client_id)
+        
         while True:
-            data = await websocket.receive_json()
-            
-            if data["type"] == "direct_agent_message":
-                message = data["content"]
+            try:
+                data = await websocket.receive_json()
                 
-                # Process message through the specific agent
-                response = await agent.process_message(message, session.context)
-                
-                # Send the response back to the client
-                await websocket.send_json({
-                    "type": "direct_agent_message",
-                    "content": response
-                })
+                if data["type"] == "user_message":
+                    message = data["content"]
+                    session.add_conversation_message("user", message)
+                    await ws_manager.send_user_message(client_id, message, agent_id=agent_id)
+                    
+                    # Process message through the specific agent
+                    agent_response = None
+                    if agent_id == "task_manager":
+                        agent_response = await task_manager.process_message(message, session.context)
+                        session.add_conversation_message("task_manager", agent_response)
+                    elif agent_id == "research":
+                        agent_response = await research_agent.process_message(message, session.context)
+                        session.add_agent_trace("Research", agent_response)
+                    elif agent_id == "creative":
+                        agent_response = await creative_agent.process_message(message, session.context)
+                        session.add_agent_trace("Creative", agent_response)
+                    else:
+                        await ws_manager.send_user_message(
+                            client_id,
+                            f"Error: Unknown agent {agent_id}",
+                            role="assistant",
+                            agent_id=agent_id
+                        )
+                        continue
+                    
+                    # Send the response back to the client
+                    if agent_response:
+                        await ws_manager.send_agent_trace(client_id, agent_id.capitalize(), agent_response, agent_id=agent_id)
+                        await ws_manager.send_user_message(client_id, agent_response, role="assistant", agent_id=agent_id)
+                        
+                        # Record internal communication
+                        if agent_id == "task_manager":
+                            await ws_manager.send_internal_comm(
+                                client_id,
+                                "TaskManager",
+                                "Research",
+                                f"Processing task: {message}"
+                            )
+                            await ws_manager.send_internal_comm(
+                                client_id,
+                                "TaskManager",
+                                "Creative",
+                                f"Processing task: {message}"
+                            )
+                    
+            except json.JSONDecodeError:
+                await ws_manager.send_user_message(
+                    client_id,
+                    "Error: Invalid message format",
+                    role="assistant",
+                    agent_id=agent_id
+                )
+            except Exception as e:
+                logger.error(f"Error processing message for agent {agent_id}: {str(e)}")
+                await ws_manager.send_user_message(
+                    client_id,
+                    f"Error processing message: {str(e)}",
+                    role="assistant",
+                    agent_id=agent_id
+                )
                 
     except WebSocketDisconnect:
-        await ws_manager.disconnect(client_id)
+        await ws_manager.disconnect(client_id, agent_id)
         session_manager.remove_session(client_id)
     except Exception as e:
-        print(f"Error in direct agent communication: {str(e)}")
-        await websocket.close(code=1011, reason=str(e))
+        logger.error(f"Error in direct agent communication for {agent_id}: {str(e)}")
+        await ws_manager.disconnect(client_id, agent_id)
+        session_manager.remove_session(client_id)
 
 @app.get("/")
 async def root():
