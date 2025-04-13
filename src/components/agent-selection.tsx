@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -80,7 +79,6 @@ export function AgentSelection() {
                     className="mt-4 w-full" 
                     onClick={() => handleAgentSelect(agent.id)}
                   >
-                    <PlusCircle className="h-4 w-4 mr-2" />
                     Chat with {agent.name}
                   </Button>
                 </CardContent>
