@@ -241,7 +241,7 @@ async def direct_agent_websocket(websocket: WebSocket, client_id: str, agent_id:
                     
                     # Send the response back to the client
                     if agent_response:
-                        await ws_manager.send_agent_trace(client_id, agent_id.capitalize(), agent_response, agent_id=agent_id)
+                        # Only send as user_message with assistant role
                         await ws_manager.send_user_message(client_id, agent_response, role="assistant", agent_id=agent_id)
                         
                         # Record internal communication

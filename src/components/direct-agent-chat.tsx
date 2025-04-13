@@ -21,6 +21,49 @@ interface DirectAgentChatProps {
   onClose: () => void;
 }
 
+// Helper function to convert markdown to HTML
+const markdownToHtml = (text: string): string => {
+  // First, split the text into paragraphs (double newlines)
+  let paragraphs = text.split(/\n\s*\n/);
+  
+  // Process each paragraph
+  paragraphs = paragraphs.map(paragraph => {
+    // Convert headings
+    paragraph = paragraph.replace(/^## (.*$)/gm, '<h2 class="text-lg font-bold mt-4 mb-2">$1</h2>');
+    
+    // Convert bullet points
+    paragraph = paragraph.replace(/^- (.*$)/gm, '<li class="ml-4">$1</li>');
+    
+    // Convert bold
+    paragraph = paragraph.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>');
+    
+    // Convert blockquotes
+    paragraph = paragraph.replace(/^> (.*$)/gm, '<blockquote class="border-l-4 border-gray-300 pl-4 italic">$1</blockquote>');
+    
+    // Convert code blocks
+    paragraph = paragraph.replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-100 p-2 rounded"><code>$1</code></pre>');
+    
+    // Convert horizontal rules
+    paragraph = paragraph.replace(/^---$/gm, '<hr class="my-4 border-gray-300" />');
+    
+    // Convert italic
+    paragraph = paragraph.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
+    
+    // Convert single newlines to <br> within paragraphs
+    paragraph = paragraph.replace(/\n/g, '<br>');
+    
+    // If the paragraph is not already wrapped in a block element (h2, li, blockquote, pre, hr)
+    if (!paragraph.match(/^<(h2|li|blockquote|pre|hr)/)) {
+      paragraph = `<p class="mb-2">${paragraph}</p>`;
+    }
+    
+    return paragraph;
+  });
+  
+  // Join paragraphs with newlines
+  return paragraphs.join('\n');
+};
+
 export function DirectAgentChat({ agentId, agentName, clientId, onClose }: DirectAgentChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -53,14 +96,14 @@ export function DirectAgentChat({ agentId, agentName, clientId, onClose }: Direc
         console.log(`Received message from ${agentName}:`, data);
         
         if (data.type === 'user_message') {
-          setMessages(prev => [...prev, {
-            content: data.content,
-            isUser: data.role === 'user',
-            timestamp: data.timestamp || Date.now(),
-            type: 'message'
-          }]);
-          
+          // Only add messages from the assistant role to prevent duplicates
           if (data.role === 'assistant') {
+            setMessages(prev => [...prev, {
+              content: data.content,
+              isUser: false,
+              timestamp: data.timestamp || Date.now(),
+              type: 'message'
+            }]);
             setIsLoading(false);
           }
         } else if (data.type === 'agent_trace') {
@@ -160,7 +203,7 @@ export function DirectAgentChat({ agentId, agentName, clientId, onClose }: Direc
               <div
                 className={`max-w-[80%] rounded-lg p-3 ${
                   message.type === 'trace'
-                    ? 'bg-blue-100 text-blue-800'
+                    ? 'bg-blue-100 text-blue-800 text-base'
                     : message.type === 'error'
                     ? 'bg-red-100 text-red-800'
                     : message.isUser
@@ -168,8 +211,15 @@ export function DirectAgentChat({ agentId, agentName, clientId, onClose }: Direc
                     : 'bg-muted'
                 }`}
               >
-                <p className="text-sm">{message.content}</p>
-                <span className="text-xs opacity-50">
+                <div 
+                  className={`prose prose-sm max-w-none ${
+                    message.type === 'trace' ? 'text-base' : 'text-sm'
+                  }`}
+                  dangerouslySetInnerHTML={{ 
+                    __html: markdownToHtml(message.content) 
+                  }} 
+                />
+                <span className="text-xs opacity-50 block mt-2">
                   {new Date(message.timestamp).toLocaleTimeString()}
                 </span>
               </div>
