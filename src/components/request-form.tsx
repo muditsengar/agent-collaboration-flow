@@ -101,6 +101,12 @@ export function RequestForm() {
             </>
           )}
         </Button>
+        
+        {!connectionState.autogenConnected && (
+          <div className="mt-2 text-sm text-destructive text-center">
+            Autogen is not available. Please check server configuration.
+          </div>
+        )}
       </div>
     </form>
   );

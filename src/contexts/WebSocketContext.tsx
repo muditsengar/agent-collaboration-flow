@@ -20,10 +20,8 @@ interface WebSocketContextProps {
   messages: Message[];
   agentTraces: AgentTrace[];
   internalComms: InternalComm[];
-  framework: FrameworkType;
   isSubmitting: boolean;
   checkSystemStatus: () => Promise<StatusResponse>;
-  setFramework: (framework: FrameworkType) => void;
   sendUserMessage: (content: string) => Promise<void>;
   resetConversation: () => void;
 }
@@ -63,7 +61,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [messages, setMessages] = useState<Message[]>([]);
   const [agentTraces, setAgentTraces] = useState<AgentTrace[]>([]);
   const [internalComms, setInternalComms] = useState<InternalComm[]>([]);
-  const [framework, setFramework] = useState<FrameworkType>('autogen');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Connect to WebSocket
@@ -142,6 +139,13 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
             case 'error':
               toast.error(data.message);
               setIsSubmitting(false);
+              
+              // Add error message to the conversation
+              setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: `Error: ${data.message}. Unable to retrieve response from Autogen.`,
+                timestamp: Date.now(),
+              }]);
               break;
               
             default:
@@ -196,10 +200,10 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       };
       setMessages(prev => [...prev, newMessage]);
       
-      // Send the request to the backend
+      // Send the request to the backend, always using Autogen framework
       const payload: ProcessRequestPayload = {
         client_id: clientId,
-        framework,
+        framework: 'autogen', // Always use autogen
         prompt: content,
       };
       
@@ -216,13 +220,27 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       if (data.status === 'error') {
         toast.error(data.message);
         setIsSubmitting(false);
+        
+        // Add error message to the conversation
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `Error: ${data.message}. Unable to retrieve response from Autogen.`,
+          timestamp: Date.now(),
+        }]);
       }
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
       setIsSubmitting(false);
+      
+      // Add error message to the conversation
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Error: Failed to send message. Unable to retrieve response from Autogen.',
+        timestamp: Date.now(),
+      }]);
     }
-  }, [clientId, connectionState.isConnected, framework]);
+  }, [clientId, connectionState.isConnected]);
 
   // Check system status
   const checkSystemStatus = useCallback(async (): Promise<StatusResponse> => {
@@ -261,10 +279,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     messages,
     agentTraces,
     internalComms,
-    framework,
     isSubmitting,
     checkSystemStatus,
-    setFramework,
     sendUserMessage,
     resetConversation,
   }), [
@@ -273,10 +289,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     messages,
     agentTraces,
     internalComms,
-    framework,
     isSubmitting,
     checkSystemStatus,
-    setFramework,
     sendUserMessage,
     resetConversation,
   ]);
