@@ -1,12 +1,9 @@
 # Multi-Agent Collaboration System Architecture Documentation
-# =====================================================
 
 ## System Overview
-# ---------------
 The Multi-Agent Collaboration System is a sophisticated AI-powered platform that enables multiple specialized AI agents to work together in real-time to solve complex tasks. The system is built with a focus on transparency, allowing users to observe and understand how AI agents collaborate to reach solutions.
 
 ## Project Structure Diagram
-# ------------------------
 ```
 agent-collaboration-flow/
 ├── src/                            # Frontend source code
@@ -56,17 +53,14 @@ agent-collaboration-flow/
 ```
 
 ## Architecture Components
-# ----------------------
 
 ### 1. Frontend Architecture
-## ---------------------
 - **Framework**: React with TypeScript
 - **UI Components**: shadcn/ui with Tailwind CSS
 - **Real-time Communication**: WebSocket connections
 - **State Management**: React Context API
 
 #### Key Frontend Components:
-### ----------------------
 - **RequestForm**: Handles user input and request submission
 - **AgentSelection**: Manages direct agent access and selection
 - **DirectAgentChat**: Implements one-on-one chat with specific agents
@@ -75,14 +69,12 @@ agent-collaboration-flow/
 - **InternalCommsPanel**: Displays inter-agent communications
 
 ### 2. Backend Architecture
-## ---------------------
 - **Framework**: Python with FastAPI
 - **AI Framework**: Microsoft AutoGen
 - **Communication**: WebSocket server
 - **Session Management**: Custom session handling
 
 #### Key Backend Components:
-### ----------------------
 - **WebSocketManager**: Handles real-time communication
 - **BaseAgent**: Abstract base class for all AI agents
 - **TaskManagerAgent**: Coordinates agent collaboration
@@ -90,7 +82,6 @@ agent-collaboration-flow/
 - **CreativeAgent**: Manages creative content generation
 
 ### 3. Agent Architecture
-## -------------------
 Each agent in the system follows a standardized architecture:
 - **System Message**: Defines agent's role and capabilities
 - **Message Processing**: Handles incoming requests
@@ -98,10 +89,8 @@ Each agent in the system follows a standardized architecture:
 - **Trace Logging**: Records agent's thought process
 
 ## Communication Flow
-# -----------------
 
 ### 1. User Request Flow
-## ------------------
 1. User submits request through RequestForm
 2. Request is sent to backend via WebSocket
 3. TaskManagerAgent receives and processes request
@@ -110,7 +99,6 @@ Each agent in the system follows a standardized architecture:
 6. Final response is compiled and sent back to user
 
 ### 2. Direct Agent Communication
-## --------------------------
 1. User selects specific agent through AgentSelection
 2. Direct WebSocket connection is established
 3. User communicates directly with selected agent
@@ -118,7 +106,6 @@ Each agent in the system follows a standardized architecture:
 5. Response is sent directly back to user
 
 ### 3. Inter-Agent Communication
-## --------------------------
 1. Agents communicate through structured messages
 2. Communication is logged in InternalCommsPanel
 3. TaskManagerAgent coordinates agent interactions
@@ -126,10 +113,8 @@ Each agent in the system follows a standardized architecture:
 5. Collaboration results are tracked and displayed
 
 ## AI Coding Approach
-# -----------------
 
 ### 1. Agent Design Principles
-## -----------------------
 - **Specialization**: Each agent has a specific role and expertise
 - **Autonomy**: Agents can operate independently
 - **Collaboration**: Agents can work together effectively
@@ -137,24 +122,20 @@ Each agent in the system follows a standardized architecture:
 - **Extensibility**: New agents can be easily added
 
 ### 2. Message Processing
-## -------------------
 - **Structured Format**: Messages follow consistent format
 - **Context Awareness**: Agents maintain conversation context
 - **Error Handling**: Robust error management
 - **Traceability**: All actions are logged and visible
 
 ### 3. Response Generation
-## --------------------
 - **Contextual Understanding**: Responses consider full context
 - **Multi-step Reasoning**: Complex problems are broken down
 - **Collaborative Solutions**: Multiple agents contribute
 - **Clear Communication**: Responses are well-structured
 
 ## Implementation Guidelines
-# ------------------------
 
 ### 1. Adding New Agents
-## ------------------
 1. Create new agent class extending BaseAgent
 2. Define system message and capabilities
 3. Implement message processing logic
@@ -162,7 +143,6 @@ Each agent in the system follows a standardized architecture:
 5. Update WebSocket handling for new agent
 
 ### 2. Modifying Agent Behavior
-## ------------------------
 1. Update agent's system message
 2. Modify message processing logic
 3. Adjust response generation
@@ -170,7 +150,6 @@ Each agent in the system follows a standardized architecture:
 5. Test with various scenarios
 
 ### 3. Extending System Capabilities
-## -----------------------------
 1. Identify new functionality needed
 2. Design appropriate agent interactions
 3. Implement new communication patterns
@@ -178,10 +157,8 @@ Each agent in the system follows a standardized architecture:
 5. Test and validate changes
 
 ## Best Practices
-# -------------
 
 ### 1. Code Organization
-## ------------------
 - Keep components modular and focused
 - Maintain clear separation of concerns
 - Use consistent naming conventions
@@ -189,7 +166,6 @@ Each agent in the system follows a standardized architecture:
 - Follow TypeScript best practices
 
 ### 2. Error Handling
-## ---------------
 - Implement comprehensive error catching
 - Provide meaningful error messages
 - Log errors appropriately
@@ -197,7 +173,6 @@ Each agent in the system follows a standardized architecture:
 - Maintain system stability
 
 ### 3. Performance Optimization
-## ------------------------
 - Minimize unnecessary re-renders
 - Optimize WebSocket communication
 - Cache frequently used data
@@ -205,10 +180,8 @@ Each agent in the system follows a standardized architecture:
 - Monitor system performance
 
 ## Security Considerations
-# ----------------------
 
 ### 1. Data Protection
-## ----------------
 - Validate all user input
 - Sanitize messages
 - Protect sensitive information
@@ -216,7 +189,6 @@ Each agent in the system follows a standardized architecture:
 - Follow security best practices
 
 ### 2. Communication Security
-## ----------------------
 - Use secure WebSocket connections
 - Validate message sources
 - Implement rate limiting
@@ -224,10 +196,8 @@ Each agent in the system follows a standardized architecture:
 - Maintain audit logs
 
 ## Testing Strategy
-# ---------------
 
 ### 1. Unit Testing
-## -------------
 - Test individual agent functionality
 - Verify message processing
 - Check response generation
@@ -235,7 +205,6 @@ Each agent in the system follows a standardized architecture:
 - Test edge cases
 
 ### 2. Integration Testing
-## --------------------
 - Test agent collaboration
 - Verify WebSocket communication
 - Check UI updates
@@ -243,90 +212,7 @@ Each agent in the system follows a standardized architecture:
 - Test system stability
 
 ### 3. End-to-End Testing
-## -------------------
 - Test complete user workflows
 - Verify system behavior
 - Check performance
-- Validate security
-- Test scalability
-
-## Deployment Guidelines
-# --------------------
-
-### 1. Environment Setup
-## -----------------
-- Configure development environment
-- Set up production environment
-- Manage dependencies
-- Configure environment variables
-- Set up monitoring
-
-### 2. Deployment Process
-## -------------------
-- Build frontend assets
-- Deploy backend services
-- Configure WebSocket server
-- Set up monitoring
-- Verify deployment
-
-### 3. Maintenance
-## -----------
-- Monitor system performance
-- Update dependencies
-- Apply security patches
-- Backup data
-- Maintain documentation
-
-## Troubleshooting Guide
-# --------------------
-
-### 1. Common Issues
-## --------------
-- WebSocket connection problems
-- Agent response issues
-- UI rendering problems
-- Performance bottlenecks
-- Security concerns
-
-### 2. Debugging Steps
-## ----------------
-- Check logs
-- Verify connections
-- Test individual components
-- Monitor system resources
-- Review recent changes
-
-### 3. Resolution Process
-## ------------------
-- Identify root cause
-- Implement fix
-- Test solution
-- Deploy changes
-- Monitor results
-
-## Future Enhancements
-# ------------------
-
-### 1. Planned Features
-## ----------------
-- Additional agent types
-- Enhanced collaboration patterns
-- Improved UI/UX
-- Advanced analytics
-- Extended capabilities
-
-### 2. Scalability Improvements
-## ------------------------
-- Distributed processing
-- Load balancing
-- Caching optimization
-- Database optimization
-- Resource management
-
-### 3. Integration Possibilities
-## ------------------------
-- External API integration
-- Additional AI frameworks
-- Custom agent development
-- Third-party services
-- Extended functionality 
+- Validate security 

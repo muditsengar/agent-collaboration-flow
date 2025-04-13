@@ -81,7 +81,7 @@ const Index = () => {
                     <AgentTracesPanel />
                   </Card>
                   
-                  <Card className="h-[calc(100vh-160px-60vh-1rem)] overflow-hidden">
+                  <Card className="h-[calc(100vh-160px-60vh-1rem+80px)] overflow-hidden">
                     <InternalCommsPanel />
                   </Card>
                 </div>
