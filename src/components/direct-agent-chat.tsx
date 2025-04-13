@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,18 +50,22 @@ export function DirectAgentChat({ agentId, agentName, clientId, onClose }: Direc
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log(`Received message from ${agentName}:`, data);
         
-        if (data.type === 'direct_agent_message') {
+        if (data.type === 'user_message') {
           setMessages(prev => [...prev, {
             content: data.content,
-            isUser: false,
+            isUser: data.role === 'user',
             timestamp: data.timestamp || Date.now(),
           }]);
           
-          // Only set loading to false if we receive an assistant message
+          // Set loading to false when we receive an assistant message
           if (data.role === 'assistant') {
             setIsLoading(false);
           }
+        } else if (data.type === 'agent_trace') {
+          // We can also handle agent trace messages if needed
+          console.log(`Agent trace from ${data.agent}:`, data.content);
         } else if (data.type === 'error') {
           toast.error(data.message);
           setIsLoading(false);
@@ -81,7 +86,9 @@ export function DirectAgentChat({ agentId, agentName, clientId, onClose }: Direc
     setSocket(ws);
     
     return () => {
-      ws.close();
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
     };
   }, [agentId, agentName, clientId]);
 
@@ -100,12 +107,15 @@ export function DirectAgentChat({ agentId, agentName, clientId, onClose }: Direc
     }
     
     try {
+      // Fixed: Use user_message type instead of direct_agent_message
       const message = {
-        type: 'direct_agent_message',
-        agent_id: agentId,
+        type: 'user_message',
         content: input,
+        role: 'user',
+        timestamp: Date.now()
       };
       
+      console.log(`Sending message to ${agentName}:`, message);
       socket?.send(JSON.stringify(message));
       
       // Add user message to UI
