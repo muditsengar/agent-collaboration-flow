@@ -1,125 +1,80 @@
-
-import logging
+from typing import Dict, Any, List
 import time
-from typing import Dict, Optional, Any
-import asyncio
-from datetime import datetime
-
-from config import Config
-from services.websocket_manager import WebSocketManager
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 class SessionState:
-    def __init__(self, client_id: str):
-        self.client_id = client_id
-        self.config = Config()
-        self.created_at = datetime.now()
-        self.last_activity = time.time()
-        self.websocket_manager: Optional[WebSocketManager] = None
-        
-        # Agent-related state will be initialized in init_agents
-        self.agents = {}
-        self.conversation_history = []
+    def __init__(self, session_id: str):
+        self.session_id = session_id
+        self.created_at = time.time()
+        self.last_accessed = time.time()
+        self.conversation_history: List[Dict[str, Any]] = []
+        self.agent_traces: List[Dict[str, Any]] = []
+        self.internal_comms: List[Dict[str, Any]] = []
+        self.context: Dict[str, Any] = {}
     
-    def set_websocket_manager(self, websocket_manager: WebSocketManager):
-        """Set the websocket manager for this session"""
-        self.websocket_manager = websocket_manager
+    def update_last_accessed(self):
+        self.last_accessed = time.time()
     
-    async def init_agents(self):
-        """Initialize agents for this session"""
-        # This will be implemented when we create the agent modules
-        pass
-    
-    async def process_user_message(self, message: str):
-        """Process a user message and trigger agent workflow"""
-        self.last_activity = time.time()
-        
-        if not self.websocket_manager:
-            logger.error(f"WebSocket manager not set for session {self.client_id}")
-            return
-        
-        # Add message to conversation history
-        timestamp = int(time.time() * 1000)
+    def add_conversation_message(self, role: str, content: str):
         self.conversation_history.append({
-            "role": "user",
-            "content": message,
-            "timestamp": timestamp
+            "role": role,
+            "content": content,
+            "timestamp": time.time()
         })
-        
-        # Send message to frontend
-        await self.websocket_manager.send_personal_message({
-            "type": "user_message",
-            "role": "user",
-            "content": message,
-            "timestamp": timestamp
-        }, self.client_id)
-        
-        # TODO: Start agent processing workflow
-        # For now, send a placeholder response
-        await asyncio.sleep(1)  # Simulate processing time
-        
-        response = "This is a placeholder response. Agent processing will be implemented soon."
-        response_timestamp = int(time.time() * 1000)
-        
-        # Add response to conversation history
-        self.conversation_history.append({
-            "role": "assistant",
-            "content": response,
-            "timestamp": response_timestamp
-        })
-        
-        # Send response to frontend
-        await self.websocket_manager.send_personal_message({
-            "type": "user_message",
-            "role": "assistant",
-            "content": response,
-            "timestamp": response_timestamp
-        }, self.client_id)
+        self.update_last_accessed()
     
-    async def send_direct_agent_message(self, agent_id: str, message: str):
-        """Send a message directly to a specific agent"""
-        self.last_activity = time.time()
-        
-        # TODO: Implement direct agent messaging once agents are set up
-        logger.info(f"Direct message to {agent_id}: {message}")
-        
-        # For now, send a placeholder response
-        if self.websocket_manager:
-            timestamp = int(time.time() * 1000)
-            await self.websocket_manager.send_personal_message({
-                "type": "agent_trace",
-                "agent": "TaskManager" if agent_id == "task_manager" else 
-                          "Research" if agent_id == "research" else "Creative",
-                "content": f"Received direct message: {message}",
-                "timestamp": timestamp
-            }, self.client_id)
-
+    def add_agent_trace(self, agent_name: str, content: str):
+        self.agent_traces.append({
+            "agent": agent_name,
+            "content": content,
+            "timestamp": time.time()
+        })
+        self.update_last_accessed()
+    
+    def add_internal_comm(self, from_agent: str, to_agent: str, content: str):
+        self.internal_comms.append({
+            "from": from_agent,
+            "to": to_agent,
+            "content": content,
+            "timestamp": time.time()
+        })
+        self.update_last_accessed()
+    
+    def update_context(self, key: str, value: Any):
+        self.context[key] = value
+        self.update_last_accessed()
+    
+    def get_context(self, key: str, default: Any = None) -> Any:
+        return self.context.get(key, default)
 
 class SessionManager:
-    def __init__(self):
+    def __init__(self, timeout: int = 3600):
         self.sessions: Dict[str, SessionState] = {}
-        self.config = Config()
-        
-        # Start cleanup task
-        self.cleanup_interval = self.config.SESSION_TIMEOUT
+        self.timeout = timeout
     
-    def get_or_create_session(self, client_id: str) -> SessionState:
-        """Get an existing session or create a new one"""
-        if client_id not in self.sessions:
-            self.sessions[client_id] = SessionState(client_id)
+    def create_session(self, session_id: str) -> SessionState:
+        if session_id in self.sessions:
+            return self.sessions[session_id]
         
-        return self.sessions[client_id]
+        session = SessionState(session_id)
+        self.sessions[session_id] = session
+        return session
+    
+    def get_session(self, session_id: str) -> SessionState:
+        return self.sessions.get(session_id)
     
     def cleanup_expired_sessions(self):
-        """Clean up expired sessions"""
         current_time = time.time()
-        expired_sessions = []
+        expired_sessions = [
+            session_id for session_id, session in self.sessions.items()
+            if current_time - session.last_accessed > self.timeout
+        ]
         
-        for client_id, session in self.sessions.items():
-            if current_time - session.last_activity > self.cleanup_interval:
-                expired_sessions.append(client_id)
-        
-        for client_id in expired_sessions:
-            del self.sessions[client_id]
-            logger.info(f"Session {client_id} expired and was cleaned up")
+        for session_id in expired_sessions:
+            del self.sessions[session_id]
+            logger.info(f"Cleaned up expired session: {session_id}")
+    
+    def remove_session(self, session_id: str):
+        if session_id in self.sessions:
+            del self.sessions[session_id]
+            logger.info(f"Removed session: {session_id}") 

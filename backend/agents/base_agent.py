@@ -1,38 +1,39 @@
-
-from typing import Dict, Any, Optional, List
-import logging
-from config import Config
-
-logger = logging.getLogger(__name__)
+from typing import Dict, Any, List
+import autogen
+from loguru import logger
 
 class BaseAgent:
-    """Base class for all agents"""
-    
-    def __init__(self, agent_id: str, name: str):
-        self.agent_id = agent_id
+    def __init__(self, name: str, system_message: str):
         self.name = name
-        self.config = Config()
-        self.messages: List[Dict[str, Any]] = []
+        self.system_message = system_message
+        self.agent = None
+        self._initialize_agent()
     
-    async def process_message(self, message: str, context: Optional[Dict[str, Any]] = None) -> str:
-        """
-        Process a message and return a response
-        
-        Args:
-            message: The message to process
-            context: Optional context information
-            
-        Returns:
-            The response message
-        """
-        raise NotImplementedError("Subclasses must implement this method")
+    def _initialize_agent(self):
+        """Initialize the Autogen agent with the given configuration."""
+        self.agent = autogen.AssistantAgent(
+            name=self.name,
+            system_message=self.system_message,
+            llm_config={
+                "config_list": [{"model": "gpt-4o-mini"}],
+                "temperature": 0.7,
+                "timeout": 300,
+            }
+        )
     
-    def add_message(self, role: str, content: str):
-        """
-        Add a message to the conversation history
-        
-        Args:
-            role: The role of the message sender (user, assistant, system)
-            content: The content of the message
-        """
-        self.messages.append({"role": role, "content": content})
+    async def process_message(self, message: str, context: Dict[str, Any] = None) -> str:
+        """Process a message and return the agent's response."""
+        try:
+            response = await self.agent.a_generate_reply(
+                messages=[{"role": "user", "content": message}],
+                sender=self.agent,
+                context=context
+            )
+            return response
+        except Exception as e:
+            logger.error(f"Error in {self.name} processing message: {str(e)}")
+            return f"Error: {str(e)}"
+    
+    def get_agent(self) -> autogen.AssistantAgent:
+        """Get the underlying Autogen agent instance."""
+        return self.agent 
