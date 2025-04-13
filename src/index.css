@@ -69,7 +69,7 @@
 
 @layer base {
   html {
-    font-size: 90%; /* Reducing the base font size by 10% */
+    font-size: 81%; /* Reducing the base font size by another 10% (90% * 0.9 = 81%) */
   }
   
   * {
