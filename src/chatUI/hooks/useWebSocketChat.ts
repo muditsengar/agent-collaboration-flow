@@ -15,9 +15,11 @@ export const useWebSocketChat = (clientId: string, agentId: string) => {
 
   // Connect to WebSocket
   useEffect(() => {
+    console.log("Connecting to websocket...");
     const ws = new WebSocket(`ws://localhost:8000/ws/${clientId}/agent/${agentId}`);
     
     ws.onopen = () => {
+      console.log("WebSocket connection opened");
       setConnectionState(prev => ({
         ...prev,
         isConnected: true,
@@ -26,6 +28,7 @@ export const useWebSocketChat = (clientId: string, agentId: string) => {
     };
     
     ws.onclose = () => {
+      console.log("WebSocket connection closed");
       setConnectionState(prev => ({
         ...prev,
         isConnected: false,
@@ -33,14 +36,16 @@ export const useWebSocketChat = (clientId: string, agentId: string) => {
       
       // Try to reconnect after 3 seconds
       setTimeout(() => {
-        if (ws.readyState === WebSocket.CLOSED) {
+        if (document.visibilityState !== 'hidden') {
+          console.log("Attempting to reconnect...");
           const newWs = new WebSocket(`ws://localhost:8000/ws/${clientId}/agent/${agentId}`);
           setSocket(newWs);
         }
       }, 3000);
     };
     
-    ws.onerror = () => {
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
       setConnectionState(prev => ({
         ...prev,
         connectionError: 'Failed to connect to server',
@@ -48,6 +53,7 @@ export const useWebSocketChat = (clientId: string, agentId: string) => {
     };
     
     ws.onmessage = (event) => {
+      console.log("Message received:", event.data);
       try {
         const data = JSON.parse(event.data);
         
@@ -79,6 +85,11 @@ export const useWebSocketChat = (clientId: string, agentId: string) => {
     };
   }, [clientId, agentId]);
 
+  // Store client ID in localStorage
+  useEffect(() => {
+    localStorage.setItem('clientId', clientId);
+  }, [clientId]);
+
   // Send message
   const sendMessage = useCallback(async (content: string): Promise<void> => {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -105,6 +116,7 @@ export const useWebSocketChat = (clientId: string, agentId: string) => {
       };
       
       socket.send(JSON.stringify(message));
+      console.log("Message sent:", message);
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
