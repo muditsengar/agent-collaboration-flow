@@ -1,9 +1,8 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Message, ConnectionState } from '@/types';
 import { toast } from 'sonner';
 
-export const useWebSocketChat = (clientId: string, agentId: string) => {
+export const useWebSocketChat = (clientId: string, agentId: string, initialContext?: string) => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +24,16 @@ export const useWebSocketChat = (clientId: string, agentId: string) => {
         isConnected: true,
         connectionError: null,
       }));
+
+      // Send initial context if available
+      if (initialContext) {
+        const message = {
+          type: 'user_message',
+          content: initialContext,
+          timestamp: Date.now(),
+        };
+        ws.send(JSON.stringify(message));
+      }
     };
     
     ws.onclose = () => {
@@ -83,7 +92,7 @@ export const useWebSocketChat = (clientId: string, agentId: string) => {
         ws.close();
       }
     };
-  }, [clientId, agentId]);
+  }, [clientId, agentId, initialContext]);
 
   // Store client ID in localStorage
   useEffect(() => {

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { Button } from "@/components/ui/button";
@@ -51,7 +50,9 @@ export function RequestForm() {
   };
 
   const openChatWindow = () => {
-    window.open('/chat.html', '_blank');
+    const context = prompt.trim();
+    const url = context ? `/chat.html?context=${encodeURIComponent(context)}` : '/chat.html';
+    window.open(url, '_blank');
   };
 
   return (
