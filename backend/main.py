@@ -138,24 +138,32 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     session.add_conversation_message("user", message)
                     await ws_manager.send_user_message(client_id, message)
                     
-                    # Process message through task manager
-                    task_response = await task_manager.process_message(message, session.context)
+                    # Process message sequentially through agents
+                    # 1. First through Task Manager
+                    task_response = await task_manager.process_message(message, session.context, client_id)
                     session.add_conversation_message("task_manager", task_response)
                     await ws_manager.send_agent_trace(client_id, "TaskManager", task_response)
-                    await ws_manager.send_user_message(client_id, task_response, role="assistant")
                     
-                    # Delegate to research agent if needed
-                    research_response = await research_agent.process_message(message, session.context)
+                    # 2. Then through Research Agent with Task Manager's response
+                    research_response = await research_agent.process_message(
+                        message, 
+                        session.context, 
+                        client_id,
+                        previous_agent_response=task_response
+                    )
                     session.add_agent_trace("Research", research_response)
                     await ws_manager.send_agent_trace(client_id, "Research", research_response)
-                    await ws_manager.send_user_message(client_id, research_response, role="assistant")
                     
-                    # Delegate to creative agent if needed
+                    # 3. Finally through Creative Agent with both previous responses
                     try:
-                        creative_response = await creative_agent.process_message(message, session.context)
+                        creative_response = await creative_agent.process_message(
+                            message,
+                            session.context,
+                            client_id,
+                            previous_agent_response=f"Task Manager: {task_response}\n\nResearch: {research_response}"
+                        )
                         session.add_agent_trace("Creative", creative_response)
                         await ws_manager.send_agent_trace(client_id, "Creative", creative_response)
-                        await ws_manager.send_user_message(client_id, creative_response, role="assistant")
                     except Exception as e:
                         error_message = str(e)
                         if "rate_limit_exceeded" in error_message:
@@ -168,19 +176,31 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                         client_id,
                         "TaskManager",
                         "Research",
-                        f"Requesting research on: {message}"
+                        f"Task plan created: {task_response}"
                     )
                     await ws_manager.send_internal_comm(
                         client_id,
-                        "TaskManager",
+                        "Research",
                         "Creative",
-                        f"Requesting creative input on: {message}"
+                        f"Research completed: {research_response}"
                     )
                     
                     # Send final response
-                    final_response = f"Task Manager: {task_response}\n\nResearch: {research_response}\n\nCreative: {creative_response}"
+                    final_response = f"""## Task Management Plan
+{task_response}
+
+## Research Findings
+{research_response}
+
+## Creative Input
+{creative_response}"""
                     await ws_manager.send_user_message(client_id, final_response, role="assistant")
                     
+                    # Clear agent histories for next conversation
+                    task_manager.clear_history()
+                    research_agent.clear_history()
+                    creative_agent.clear_history()
+
             except json.JSONDecodeError:
                 await ws_manager.send_user_message(
                     client_id,
@@ -210,6 +230,24 @@ async def direct_agent_websocket(websocket: WebSocket, client_id: str, agent_id:
         await ws_manager.connect(websocket, client_id, agent_id)
         session = session_manager.create_session(client_id)
         
+        # Initialize agent based on agent_id
+        agent = None
+        if agent_id == "task_manager":
+            agent = task_manager
+        elif agent_id == "research":
+            agent = research_agent
+        elif agent_id == "creative":
+            agent = creative_agent
+        
+        if not agent:
+            await ws_manager.send_user_message(
+                client_id,
+                f"Error: Unknown agent {agent_id}",
+                role="assistant",
+                agent_id=agent_id
+            )
+            return
+        
         while True:
             try:
                 data = await websocket.receive_json()
@@ -219,46 +257,48 @@ async def direct_agent_websocket(websocket: WebSocket, client_id: str, agent_id:
                     session.add_conversation_message("user", message)
                     await ws_manager.send_user_message(client_id, message, agent_id=agent_id)
                     
-                    # Process message through the specific agent
-                    agent_response = None
+                    # Process message through the specific agent with chat history
+                    agent_response = await agent.process_message(
+                        message,
+                        session.context,
+                        client_id
+                    )
+                    
+                    # Add response to appropriate session storage
                     if agent_id == "task_manager":
-                        agent_response = await task_manager.process_message(message, session.context)
                         session.add_conversation_message("task_manager", agent_response)
-                    elif agent_id == "research":
-                        agent_response = await research_agent.process_message(message, session.context)
-                        session.add_agent_trace("Research", agent_response)
-                    elif agent_id == "creative":
-                        agent_response = await creative_agent.process_message(message, session.context)
-                        session.add_agent_trace("Creative", agent_response)
                     else:
-                        await ws_manager.send_user_message(
-                            client_id,
-                            f"Error: Unknown agent {agent_id}",
-                            role="assistant",
-                            agent_id=agent_id
-                        )
-                        continue
+                        session.add_agent_trace(agent.name, agent_response)
                     
                     # Send the response back to the client
-                    if agent_response:
-                        # Only send as user_message with assistant role
-                        await ws_manager.send_user_message(client_id, agent_response, role="assistant", agent_id=agent_id)
-                        
-                        # Record internal communication
-                        if agent_id == "task_manager":
-                            await ws_manager.send_internal_comm(
-                                client_id,
-                                "TaskManager",
-                                "Research",
-                                f"Processing task: {message}"
-                            )
-                            await ws_manager.send_internal_comm(
-                                client_id,
-                                "TaskManager",
-                                "Creative",
-                                f"Processing task: {message}"
-                            )
+                    await ws_manager.send_user_message(client_id, agent_response, role="assistant", agent_id=agent_id)
                     
+                    # Record internal communication if needed
+                    if agent_id == "task_manager":
+                        await ws_manager.send_internal_comm(
+                            client_id,
+                            "TaskManager",
+                            "Research",
+                            f"Task plan created: {agent_response}"
+                        )
+                    elif agent_id == "research":
+                        await ws_manager.send_internal_comm(
+                            client_id,
+                            "Research",
+                            "Creative",
+                            f"Research completed: {agent_response}"
+                        )
+                
+                elif data["type"] == "clear_history":
+                    # Clear the agent's message history
+                    agent.clear_history()
+                    await ws_manager.send_user_message(
+                        client_id,
+                        "Chat history cleared",
+                        role="system",
+                        agent_id=agent_id
+                    )
+                
             except json.JSONDecodeError:
                 await ws_manager.send_user_message(
                     client_id,
