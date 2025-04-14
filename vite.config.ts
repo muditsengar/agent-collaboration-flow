@@ -7,7 +7,13 @@ import { componentTagger } from "lovable-tagger"
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   plugins: [
-    react(),
+    react({
+      // Add explicit configuration for React plugin
+      jsxRuntime: 'automatic',
+      babel: {
+        plugins: []
+      }
+    }),
     mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
@@ -26,5 +32,8 @@ export default defineConfig(({ mode }) => ({
         chat: path.resolve(__dirname, 'public/chat.html'),
       },
     },
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom'],
   },
 }))
