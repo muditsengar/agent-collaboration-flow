@@ -51,7 +51,7 @@ export function RequestForm() {
   };
 
   const openChatWindow = () => {
-    window.open('/chat.html', '_blank', 'width=500,height=600');
+    window.open('/chat.html', '_blank');
   };
 
   return (
