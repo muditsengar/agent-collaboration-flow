@@ -14,10 +14,9 @@ The best part? You can watch everything happen in real-time! When you ask a ques
 4. You'll get a complete solution with all the steps explained
 
 This isn't just a simple chatbot - it's a team of AI agents that can:
-- Research information
-- Plan solutions
-- Create content
-- Coordinate tasks
+- Task Manager
+- Research solutions
+- Creative
 - And much more!
 
 The system is designed to be transparent, so you can see exactly how the AI is working to solve your problem, rather than just getting a final answer. It's like having a window into the AI's thought process!
@@ -27,16 +26,15 @@ The system is designed to be transparent, so you can see exactly how the AI is w
 ### What is this project?
 
 Imagine a team of robot helpers that work together to solve problems. Each robot has a special job:
-- One robot is the team leader (Coordinator)
+- One robot is the team leader (Task Manager)
 - One robot is really good at finding information (Researcher)
-- One robot is great at making plans (Planner)
-- One robot is excellent at creating solutions (Executor)
+- One robot is excellent at creating solutions (Creative)
 
 This project lets you see these robots working together in real-time! You can ask them a question and watch how they talk to each other, share information, and solve your problem step by step.
 
 ### How does it work?
 
-When using real AI frameworks (not simulations):
+When using real AI frameworks:
 
 1. You type a question in the box at the top of the screen
 2. Your question is sent to a special computer program called a "backend"
@@ -68,7 +66,7 @@ The screen is split into three main areas:
 
 ### What technology makes this work?
 
-For a real integration (not simulation):
+For a real integration:
 
 1. **Frontend** - What you see on your screen:
    - React: The building blocks that create all the parts you see
@@ -89,7 +87,7 @@ For a real integration (not simulation):
 
 Most AI systems work like a black box - you ask a question and get an answer, but you can't see how the AI figured it out. This project is special because:
 
-1. It uses real AI frameworks like Microsoft AutoGen, not simulations
+1. It uses real AI frameworks like Microsoft AutoGen
 2. It shows you exactly how multiple AI agents collaborate to solve problems
 3. You can watch the entire process happening in real-time
 4. You can understand how the AI reached its final answer
@@ -98,7 +96,7 @@ It's like having a window into the AI's thought process!
 
 ### What can I ask the robots?
 
-With real AI frameworks (not simulations), you can ask about almost anything:
+With real AI frameworks, you can ask about almost anything:
 - Help with complex problems
 - Creative ideas and brainstorming
 - Research on different topics
@@ -106,16 +104,6 @@ With real AI frameworks (not simulations), you can ask about almost anything:
 - Analysis of information
 
 The multi-agent system is especially good at breaking down complex tasks into manageable steps.
-
-### Why are there different "frameworks"?
-
-Different AI frameworks have different strengths:
-
-- **Microsoft AutoGen**: Great at creating conversational AI teams that work together
-- **LangChain**: Excellent at connecting AI to different sources of information
-- **Rasa**: Specialized in understanding natural language conversations
-
-Each framework has its own approach to solving problems, so you can pick the one that works best for your question!
 
 ### What happens behind the scenes?
 
@@ -131,7 +119,7 @@ With real AI integration:
 
 ### Is this magic?
 
-It's not magic - it's advanced artificial intelligence! Unlike simulated responses, real AI frameworks:
+It's not magic - it's advanced artificial intelligence!
 
 1. Use large language models (like GPT-4) to power each agent
 2. Have sophisticated ways to structure agent conversations
