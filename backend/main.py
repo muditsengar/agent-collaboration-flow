@@ -134,6 +134,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         
         while True:
             try:
+                # Check if the connection is still active
+                if not ws_manager.is_client_connected(client_id):
+                    print(f"Client {client_id} is no longer connected")
+                    break
+                    
                 data = await websocket.receive_json()
                 print(f"Received message from client {client_id}: {data}")
                 
@@ -215,22 +220,25 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     "Error: Invalid message format",
                     role="assistant"
                 )
+            except WebSocketDisconnect:
+                print(f"Client {client_id} disconnected")
+                break
             except Exception as e:
                 print(f"Error processing message for client {client_id}: {str(e)}")
                 logger.error(f"Error processing message: {str(e)}")
-                await ws_manager.send_user_message(
-                    client_id,
-                    f"Error processing message: {str(e)}",
-                    role="assistant"
-                )
+                if ws_manager.is_client_connected(client_id):
+                    await ws_manager.send_user_message(
+                        client_id,
+                        f"Error processing message: {str(e)}",
+                        role="assistant"
+                    )
                 
     except WebSocketDisconnect:
         print(f"Client {client_id} disconnected")
-        await ws_manager.disconnect(client_id)
-        session_manager.remove_session(client_id)
     except Exception as e:
         print(f"Error in WebSocket communication for client {client_id}: {str(e)}")
         logger.error(f"Error in WebSocket communication: {str(e)}")
+    finally:
         await ws_manager.disconnect(client_id)
         session_manager.remove_session(client_id)
 

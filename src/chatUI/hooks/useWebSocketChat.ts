@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Message, ConnectionState } from '@/types';
 import { toast } from 'sonner';
 
@@ -14,26 +13,53 @@ export const useWebSocketChat = (clientId: string, agentId: string, initialConte
   });
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const MAX_RECONNECT_ATTEMPTS = 3;
+  const RECONNECT_DELAY = 3000; // 3 seconds
+  const isConnecting = useRef(false);
+  const lastToastTime = useRef<number>(0);
+  const TOAST_COOLDOWN = 5000; // 5 seconds between toasts
+
+  const showToast = (message: string, type: 'success' | 'error' = 'error') => {
+    const now = Date.now();
+    if (now - lastToastTime.current > TOAST_COOLDOWN) {
+      if (type === 'success') {
+        toast.success(message);
+      } else {
+        toast.error(message);
+      }
+      lastToastTime.current = now;
+    }
+  };
 
   // Connect to WebSocket
   useEffect(() => {
     console.log("Connecting to websocket...");
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: NodeJS.Timeout;
+
     const connectWebSocket = () => {
+      // Prevent multiple connection attempts
+      if (isConnecting.current) {
+        console.log("Already attempting to connect...");
+        return;
+      }
+
+      isConnecting.current = true;
       try {
         const wsUrl = `ws://localhost:8000/ws/${clientId}/agent/${agentId}`;
         console.log(`Attempting to connect to: ${wsUrl}`);
         
-        const ws = new WebSocket(wsUrl);
+        ws = new WebSocket(wsUrl);
         
         ws.onopen = () => {
           console.log("WebSocket connection opened successfully");
+          isConnecting.current = false;
           setConnectionState(prev => ({
             ...prev,
             isConnected: true,
             connectionError: null,
           }));
           setReconnectAttempts(0);
-          toast.success('Connected to server');
+          showToast('Connected to server', 'success');
     
           // Send initial context if available
           if (initialContext) {
@@ -43,12 +69,13 @@ export const useWebSocketChat = (clientId: string, agentId: string, initialConte
               content: initialContext,
               timestamp: Date.now(),
             };
-            ws.send(JSON.stringify(message));
+            ws?.send(JSON.stringify(message));
           }
         };
         
         ws.onclose = (event) => {
           console.log("WebSocket connection closed", event.code, event.reason);
+          isConnecting.current = false;
           setConnectionState(prev => ({
             ...prev,
             isConnected: false,
@@ -56,30 +83,34 @@ export const useWebSocketChat = (clientId: string, agentId: string, initialConte
           
           // Try to reconnect if we haven't exceeded the max attempts
           if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-            console.log(`Reconnect attempt ${reconnectAttempts + 1} of ${MAX_RECONNECT_ATTEMPTS}`);
-            setTimeout(() => {
+            const attempt = reconnectAttempts + 1;
+            console.log(`Reconnect attempt ${attempt} of ${MAX_RECONNECT_ATTEMPTS}`);
+            showToast(`Connection attempt ${attempt} of ${MAX_RECONNECT_ATTEMPTS}`, 'error');
+            
+            reconnectTimeout = setTimeout(() => {
               if (document.visibilityState !== 'hidden') {
                 setReconnectAttempts(prev => prev + 1);
                 connectWebSocket();
               }
-            }, 3000);
+            }, RECONNECT_DELAY);
           } else {
-            toast.error('Failed to connect after multiple attempts. Please check if the backend is running.');
+            showToast('Connection failed after 3 attempts. Please refresh the page to try again.');
             setConnectionState(prev => ({
               ...prev,
-              connectionError: 'Failed to connect to server after multiple attempts',
+              connectionError: 'Failed to connect to server after 3 attempts',
             }));
           }
         };
         
         ws.onerror = (error) => {
           console.error("WebSocket error:", error);
+          isConnecting.current = false;
           setConnectionState(prev => ({
             ...prev,
             connectionError: 'Failed to connect to server',
           }));
           if (reconnectAttempts === 0) {
-            toast.error('Failed to connect to server. Please check if the backend is running.');
+            showToast('Failed to connect to server. Please check if the backend is running.');
           }
         };
         
@@ -99,7 +130,7 @@ export const useWebSocketChat = (clientId: string, agentId: string, initialConte
                 setIsSubmitting(false);
               }
             } else if (data.type === 'error') {
-              toast.error(data.message);
+              showToast(data.message);
               setIsSubmitting(false);
             }
           } catch (error) {
@@ -108,27 +139,33 @@ export const useWebSocketChat = (clientId: string, agentId: string, initialConte
         };
         
         setSocket(ws);
-        return ws;
       } catch (error) {
         console.error("Error creating WebSocket:", error);
+        isConnecting.current = false;
         setConnectionState(prev => ({
           ...prev,
           connectionError: 'Failed to create WebSocket connection',
         }));
-        toast.error('Error establishing connection. Please check if the backend is running.');
-        return null;
+        showToast('Error establishing connection. Please check if the backend is running.');
       }
     };
 
-    const ws = connectWebSocket();
+    // Only attempt to connect if we're not already connected and haven't exceeded max attempts
+    if (!connectionState.isConnected && !isConnecting.current && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+      connectWebSocket();
+    }
     
     return () => {
       console.log("Cleaning up WebSocket connection...");
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
       if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
         ws.close();
       }
+      isConnecting.current = false;
     };
-  }, [clientId, agentId, initialContext, reconnectAttempts]);
+  }, [clientId, agentId, initialContext, reconnectAttempts, connectionState.isConnected]);
 
   // Store client ID in localStorage
   useEffect(() => {
@@ -138,7 +175,7 @@ export const useWebSocketChat = (clientId: string, agentId: string, initialConte
   // Send message
   const sendMessage = useCallback(async (content: string): Promise<void> => {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-      toast.error('Not connected to server');
+      showToast('Not connected to server');
       return;
     }
     
@@ -164,7 +201,7 @@ export const useWebSocketChat = (clientId: string, agentId: string, initialConte
       console.log("Message sent:", message);
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
+      showToast('Failed to send message');
       setIsSubmitting(false);
     }
   }, [socket]);
