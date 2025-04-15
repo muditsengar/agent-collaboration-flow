@@ -1,9 +1,12 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { MessageSquare, Send, ArrowLeft } from 'lucide-react';
+import { MessageSquare, Send, ArrowLeft, ServerOff, RefreshCw } from 'lucide-react';
 import { useWebSocketChat } from './hooks/useWebSocketChat';
 import { ChatMessage } from './components/ChatMessage';
 import { ChatInput } from './components/ChatInput';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const ChatWindow = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -25,6 +28,12 @@ const ChatWindow = () => {
     connectionState, 
     isSubmitting 
   } = useWebSocketChat(clientId, 'task_manager', initialContext);
+
+  const handleRetryConnection = () => {
+    // Force page refresh to attempt reconnection
+    window.location.reload();
+    toast.info('Attempting to reconnect...');
+  };
 
   useEffect(() => {
     // Scroll to bottom when messages change
@@ -52,6 +61,17 @@ const ChatWindow = () => {
           <span className="text-sm text-muted-foreground">
             {connectionState.isConnected ? 'Connected' : 'Disconnected'}
           </span>
+          {!connectionState.isConnected && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleRetryConnection} 
+              className="ml-2" 
+              title="Retry connection"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </header>
 
@@ -64,24 +84,42 @@ const ChatWindow = () => {
         </div>
       )}
 
+      {/* Connection Error Message */}
+      {connectionState.connectionError && messages.length === 0 && (
+        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-4">
+          <ServerOff className="h-16 w-16 mb-4 text-destructive opacity-50" />
+          <h3 className="text-lg font-medium text-destructive mb-2">Connection Error</h3>
+          <p className="text-center mb-4">
+            {connectionState.connectionError}. <br/>
+            Make sure the backend server is running on port 8000.
+          </p>
+          <Button variant="outline" onClick={handleRetryConnection}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry Connection
+          </Button>
+        </div>
+      )}
+
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-muted-foreground flex-col">
-            <MessageSquare className="h-12 w-12 mb-4 opacity-20" />
-            <p>Send a message to start chatting with the Task Manager Agent</p>
-          </div>
-        ) : (
-          messages.map((message, index) => (
-            <ChatMessage 
-              key={index} 
-              message={message} 
-              isUser={message.role === 'user'} 
-            />
-          ))
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+      {!connectionState.connectionError && (
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-muted-foreground flex-col">
+              <MessageSquare className="h-12 w-12 mb-4 opacity-20" />
+              <p>Send a message to start chatting with the Task Manager Agent</p>
+            </div>
+          ) : (
+            messages.map((message, index) => (
+              <ChatMessage 
+                key={index} 
+                message={message} 
+                isUser={message.role === 'user'} 
+              />
+            ))
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      )}
 
       {/* Input */}
       <div className="border-t p-4">
