@@ -36,8 +36,8 @@ export const useWebSocketChat = (clientId: string, agentId: string, initialConte
       }
     };
     
-    ws.onclose = () => {
-      console.log("WebSocket connection closed");
+    ws.onclose = (event) => {
+      console.log("WebSocket connection closed", event.code, event.reason);
       setConnectionState(prev => ({
         ...prev,
         isConnected: false,
@@ -59,6 +59,7 @@ export const useWebSocketChat = (clientId: string, agentId: string, initialConte
         ...prev,
         connectionError: 'Failed to connect to server',
       }));
+      toast.error('Failed to connect to server. Please check if the backend is running.');
     };
     
     ws.onmessage = (event) => {

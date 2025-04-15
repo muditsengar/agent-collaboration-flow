@@ -6,6 +6,7 @@ from typing import Dict, Any, List
 import os
 import json
 import time
+from loguru import logger
 
 from services.websocket_manager import WebSocketManager
 from services.session_state import SessionManager
@@ -126,12 +127,15 @@ async def get_status():
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     try:
+        print(f"New WebSocket connection attempt from client {client_id}")
         await ws_manager.connect(websocket, client_id)
+        print(f"WebSocket connection established for client {client_id}")
         session = session_manager.create_session(client_id)
         
         while True:
             try:
                 data = await websocket.receive_json()
+                print(f"Received message from client {client_id}: {data}")
                 
                 if data["type"] == "user_message":
                     message = data["content"]
@@ -140,11 +144,13 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     
                     # Process message sequentially through agents
                     # 1. First through Task Manager
+                    print(f"Processing message through Task Manager for client {client_id}")
                     task_response = await task_manager.process_message(message, session.context, client_id)
                     session.add_conversation_message("task_manager", task_response)
                     await ws_manager.send_agent_trace(client_id, "TaskManager", task_response)
                     
                     # 2. Then through Research Agent with Task Manager's response
+                    print(f"Processing message through Research Agent for client {client_id}")
                     research_response = await research_agent.process_message(
                         message, 
                         session.context, 
@@ -156,6 +162,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     
                     # 3. Finally through Creative Agent with both previous responses
                     try:
+                        print(f"Processing message through Creative Agent for client {client_id}")
                         creative_response = await creative_agent.process_message(
                             message,
                             session.context,
@@ -202,12 +209,14 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     creative_agent.clear_history()
 
             except json.JSONDecodeError:
+                print(f"Invalid JSON received from client {client_id}")
                 await ws_manager.send_user_message(
                     client_id,
                     "Error: Invalid message format",
                     role="assistant"
                 )
             except Exception as e:
+                print(f"Error processing message for client {client_id}: {str(e)}")
                 logger.error(f"Error processing message: {str(e)}")
                 await ws_manager.send_user_message(
                     client_id,
@@ -216,9 +225,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 )
                 
     except WebSocketDisconnect:
+        print(f"Client {client_id} disconnected")
         await ws_manager.disconnect(client_id)
         session_manager.remove_session(client_id)
     except Exception as e:
+        print(f"Error in WebSocket communication for client {client_id}: {str(e)}")
         logger.error(f"Error in WebSocket communication: {str(e)}")
         await ws_manager.disconnect(client_id)
         session_manager.remove_session(client_id)
@@ -227,7 +238,9 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 async def direct_agent_websocket(websocket: WebSocket, client_id: str, agent_id: str):
     """Direct communication with a specific agent"""
     try:
+        print(f"New direct agent WebSocket connection attempt from client {client_id} for agent {agent_id}")
         await ws_manager.connect(websocket, client_id, agent_id)
+        print(f"Direct agent WebSocket connection established for client {client_id} and agent {agent_id}")
         session = session_manager.create_session(client_id)
         
         # Initialize agent based on agent_id
@@ -240,6 +253,7 @@ async def direct_agent_websocket(websocket: WebSocket, client_id: str, agent_id:
             agent = creative_agent
         
         if not agent:
+            print(f"Unknown agent ID: {agent_id}")
             await ws_manager.send_user_message(
                 client_id,
                 f"Error: Unknown agent {agent_id}",
@@ -247,6 +261,8 @@ async def direct_agent_websocket(websocket: WebSocket, client_id: str, agent_id:
                 agent_id=agent_id
             )
             return
+        
+        print(f"Agent {agent_id} initialized for client {client_id}")
         
         while True:
             try:
@@ -300,13 +316,20 @@ async def direct_agent_websocket(websocket: WebSocket, client_id: str, agent_id:
                     )
                 
             except json.JSONDecodeError:
+                print(f"Invalid JSON received from client {client_id}")
                 await ws_manager.send_user_message(
                     client_id,
                     "Error: Invalid message format",
                     role="assistant",
                     agent_id=agent_id
                 )
+            except WebSocketDisconnect as e:
+                print(f"Client {client_id} disconnected from agent {agent_id}: {str(e)}")
+                await ws_manager.disconnect(client_id, agent_id)
+                session_manager.remove_session(client_id)
+                return
             except Exception as e:
+                print(f"Error processing message for agent {agent_id}: {str(e)}")
                 logger.error(f"Error processing message for agent {agent_id}: {str(e)}")
                 await ws_manager.send_user_message(
                     client_id,
@@ -315,10 +338,12 @@ async def direct_agent_websocket(websocket: WebSocket, client_id: str, agent_id:
                     agent_id=agent_id
                 )
                 
-    except WebSocketDisconnect:
+    except WebSocketDisconnect as e:
+        print(f"Client {client_id} disconnected from agent {agent_id}: {str(e)}")
         await ws_manager.disconnect(client_id, agent_id)
         session_manager.remove_session(client_id)
     except Exception as e:
+        print(f"Error in direct agent communication for {agent_id}: {str(e)}")
         logger.error(f"Error in direct agent communication for {agent_id}: {str(e)}")
         await ws_manager.disconnect(client_id, agent_id)
         session_manager.remove_session(client_id)

@@ -9,26 +9,40 @@ class WebSocketManager:
         self.active_connections: Dict[str, WebSocket] = {}
         self.direct_agent_connections: Dict[str, Dict[str, WebSocket]] = {}
         self.message_queue: List[Dict] = []
+        print("WebSocketManager initialized")
     
     async def connect(self, websocket: WebSocket, client_id: str, agent_id: str = None):
-        await websocket.accept()
-        if agent_id:
-            if client_id not in self.direct_agent_connections:
-                self.direct_agent_connections[client_id] = {}
-            self.direct_agent_connections[client_id][agent_id] = websocket
-            logger.info(f"Client {client_id} connected to agent {agent_id}")
-        else:
-            self.active_connections[client_id] = websocket
-            logger.info(f"Client {client_id} connected")
+        print(f"Attempting to connect WebSocket for client {client_id}" + (f" and agent {agent_id}" if agent_id else ""))
+        try:
+            await websocket.accept()
+            print(f"WebSocket accepted for client {client_id}" + (f" and agent {agent_id}" if agent_id else ""))
+            
+            if agent_id:
+                if client_id not in self.direct_agent_connections:
+                    self.direct_agent_connections[client_id] = {}
+                self.direct_agent_connections[client_id][agent_id] = websocket
+                print(f"Client {client_id} connected to agent {agent_id}")
+                logger.info(f"Client {client_id} connected to agent {agent_id}")
+            else:
+                self.active_connections[client_id] = websocket
+                print(f"Client {client_id} connected")
+                logger.info(f"Client {client_id} connected")
+        except Exception as e:
+            print(f"Error in WebSocket connect: {str(e)}")
+            logger.error(f"Error in WebSocket connect: {str(e)}")
+            raise e
     
     async def disconnect(self, client_id: str, agent_id: str = None):
+        print(f"Attempting to disconnect WebSocket for client {client_id}" + (f" and agent {agent_id}" if agent_id else ""))
         if agent_id:
             if client_id in self.direct_agent_connections and agent_id in self.direct_agent_connections[client_id]:
                 del self.direct_agent_connections[client_id][agent_id]
+                print(f"Client {client_id} disconnected from agent {agent_id}")
                 logger.info(f"Client {client_id} disconnected from agent {agent_id}")
         else:
             if client_id in self.active_connections:
                 del self.active_connections[client_id]
+                print(f"Client {client_id} disconnected")
                 logger.info(f"Client {client_id} disconnected")
     
     def is_client_connected(self, client_id: str, agent_id: str = None) -> bool:
@@ -40,21 +54,27 @@ class WebSocketManager:
     
     async def send_message(self, client_id: str, message: Dict, agent_id: str = None):
         try:
+            print(f"Attempting to send message to client {client_id}" + (f" for agent {agent_id}" if agent_id else ""))
             if agent_id:
                 if client_id in self.direct_agent_connections and agent_id in self.direct_agent_connections[client_id]:
                     try:
                         await self.direct_agent_connections[client_id][agent_id].send_json(message)
+                        print(f"Message sent successfully to client {client_id} for agent {agent_id}")
                     except Exception as e:
+                        print(f"Error sending message to {client_id} for agent {agent_id}: {str(e)}")
                         logger.error(f"Error sending message to {client_id} for agent {agent_id}: {str(e)}")
                         await self.disconnect(client_id, agent_id)
             else:
                 if client_id in self.active_connections:
                     try:
                         await self.active_connections[client_id].send_json(message)
+                        print(f"Message sent successfully to client {client_id}")
                     except Exception as e:
+                        print(f"Error sending message to {client_id}: {str(e)}")
                         logger.error(f"Error sending message to {client_id}: {str(e)}")
                         await self.disconnect(client_id)
         except Exception as e:
+            print(f"Unexpected error in send_message for {client_id}: {str(e)}")
             logger.error(f"Unexpected error in send_message for {client_id}: {str(e)}")
     
     async def broadcast(self, message: Dict):
